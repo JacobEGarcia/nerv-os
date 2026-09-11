@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script>if(localStorage.getItem('nerv-theme')==='green')document.documentElement.classList.add('green');</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NERV OS — ATMO</title>
+<meta name="theme-color" content="#080502">
+<link rel="manifest" href="../manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Shippori+Mincho+B1:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="nerv.css">
+<style>
+.bigtemp{font-family:var(--mincho); font-weight:800; font-size:clamp(56px,10vw,110px); color:var(--ink-hi); line-height:1}
+.hours{display:grid; grid-auto-flow:column; grid-auto-columns:minmax(74px,1fr); gap:8px; overflow-x:auto; padding-bottom:6px}
+.hours .h{border:1px solid var(--hair-dim); padding:8px 6px; text-align:center}
+.hours .h .hh{font-size:9px; letter-spacing:.2em; color:var(--ink-dim)}
+.hours .h .ht{font-size:16px; color:var(--ink-hi); font-weight:600; margin:4px 0 2px}
+.hours .h .hc{font-size:8px; letter-spacing:.12em; color:var(--ink-dim)}
+.days .dr{display:flex; align-items:center; gap:12px; border-bottom:1px dashed var(--hair-dim); padding:7px 2px; font-size:12px}
+.days .dr .dd{width:100px; letter-spacing:.15em; color:var(--ink-dim)}
+.days .dr .dc{flex:1; font-size:10px; letter-spacing:.12em}
+.days .dr .dt{width:110px; text-align:right; color:var(--ink-hi)}
+.dbar{height:5px; background:var(--hair-dim); position:relative; width:130px}
+.dbar .f{position:absolute; top:0; bottom:0; background:var(--ink); opacity:.8}
+.row{display:flex; gap:10px; flex-wrap:wrap}
+#geo-results button{display:block; width:100%; text-align:left; background:#000; border:1px solid var(--hair-dim); border-top:0; color:var(--ink); padding:8px 10px; font-size:12px}
+#geo-results button:hover{background:rgba(87,255,143,.08)}
+.cond{font-family:var(--mincho); font-weight:700; font-size:22px; letter-spacing:.12em; color:var(--ink)}
+</style>
+</head>
+<body>
+<main>
+  <div class="phead">
+    <h1 class="glow">ATMO</h1><span class="jp">気象観測</span>
+    <div class="code">MODULE 06<br>ATMOSPHERICS</div>
+  </div>
+  <div class="panel tickbox">
+    <div class="cap">STATION SELECT — 観測地点</div>
+    <div class="row">
+      <input class="inp" id="city" placeholder="CITY NAME (E.G. CHICAGO)" style="flex:1; min-width:200px">
+      <button class="btn solid" id="search">LOCATE</button>
+      <button class="btn" id="gps">MY POSITION</button>
+    </div>
+    <div id="geo-results" style="max-width:520px"></div>
+  </div>
+  <div id="wx" style="display:none">
+    <div class="grid2" style="margin-top:18px">
+      <div class="panel tickbox">
+        <div class="cap">CURRENT CONDITIONS — 現在</div>
+        <div class="small dim" id="stn" style="letter-spacing:.25em; margin-bottom:8px">—</div>
+        <div class="bigtemp glow" id="t">--°</div>
+        <div class="cond" id="cond">—</div>
+        <div class="ro" style="margin-top:12px"><span class="k">FEELS LIKE</span><span class="v" id="feels">--</span></div>
+        <div class="ro"><span class="k">HUMIDITY</span><span class="v" id="hum">--</span></div>
+        <div class="ro"><span class="k">WIND</span><span class="v" id="wind">--</span></div>
+        <div class="ro"><span class="k">PRECIPITATION</span><span class="v" id="prec">--</span></div>
+        <div class="ro"><span class="k">CLOUD COVER</span><span class="v" id="cloud">--</span></div>
+        <div class="ro"><span class="k">PRESSURE</span><span class="v" id="pres">--</span></div>
+      </div>
+      <div class="panel">
+        <div class="cap">NEXT 24H — 時間別</div>
+        <div class="hours" id="hours"></div>
+        <div class="small dim" style="margin-top:8px">P% = PRECIPITATION PROBABILITY</div>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:18px">
+      <div class="cap">7-DAY OUTLOOK — 週間</div>
+      <div class="days" id="days"></div>
+    </div>
+  </div>
+  <div class="panel" id="err" style="display:none; margin-top:18px">
+    <div class="cap">SIGNAL LOST — 通信不良</div>
+    <div class="glow-amber small" id="err-msg">COULD NOT REACH ATMOSPHERIC FEED.</div>
+  </div>
+</main>
+<script src="nerv.js"></script>
+<script>
+NERV.shell('ATMO');
+const CODES = {0:'CLEAR SKY',1:'MAINLY CLEAR',2:'PARTLY CLOUDY',3:'OVERCAST',45:'FOG',48:'RIME FOG',
+51:'LIGHT DRIZZLE',53:'DRIZZLE',55:'HEAVY DRIZZLE',56:'FREEZING DRIZZLE',57:'FREEZING DRIZZLE',
+61:'LIGHT RAIN',63:'RAIN',65:'HEAVY RAIN',66:'FREEZING RAIN',67:'FREEZING RAIN',
+71:'LIGHT SNOW',73:'SNOW',75:'HEAVY SNOW',77:'SNOW GRAINS',80:'LIGHT SHOWERS',81:'SHOWERS',82:'HEAVY SHOWERS',
+85:'SNOW SHOWERS',86:'SNOW SHOWERS',95:'THUNDERSTORM',96:'THUNDER + HAIL',99:'THUNDER + HAIL'};
+const DOW=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+let lastPlace = NERV.store.get('wx-place', {name:'CHICAGO, ILLINOIS', lat:41.8781, lon:-87.6298});
+
+function err(msg){
+  document.getElementById('err').style.display='block';
+  document.getElementById('err-msg').textContent = msg;
+}
+async function load(p){
+  document.getElementById('err').style.display='none';
+  try{
+    const u = 'https://api.open-meteo.com/v1/forecast?latitude='+p.lat+'&longitude='+p.lon+
+      '&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,cloud_cover,pressure_msl,wind_speed_10m,wind_direction_10m'+
+      '&hourly=temperature_2m,precipitation_probability,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max'+
+      '&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto&forecast_days=7';
+    const r = await fetch(u);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d = await r.json();
+    paint(p, d);
+    NERV.store.set('wx-place', p);
+  }catch(e){ err('ATMOSPHERIC FEED UNREACHABLE — ' + e.message.toUpperCase()); }
+}
+function deg2dir(d){ return ['N','NE','E','SE','S','SW','W','NW'][Math.round(d/45)%8]; }
+function paint(p, d){
+  document.getElementById('wx').style.display='block';
+  document.getElementById('stn').textContent = 'STATION: ' + p.name.toUpperCase();
+  const c = d.current;
+  document.getElementById('t').textContent = Math.round(c.temperature_2m) + '°F';
+  document.getElementById('cond').textContent = CODES[c.weather_code] || 'UNKNOWN';
+  document.getElementById('feels').textContent = Math.round(c.apparent_temperature) + '°F';
+  document.getElementById('hum').textContent = c.relative_humidity_2m + '%';
+  document.getElementById('wind').textContent = Math.round(c.wind_speed_10m) + ' MPH ' + deg2dir(c.wind_direction_10m);
+  document.getElementById('prec').textContent = (c.precipitation*0.0393701).toFixed(2) + ' IN';
+  document.getElementById('cloud').textContent = c.cloud_cover + '%';
+  document.getElementById('pres').textContent = Math.round(c.pressure_msl) + ' HPA';
+  // hourly: next 24 from now
+  const now = new Date(); const h = document.getElementById('hours'); h.innerHTML='';
+  let start = d.hourly.time.findIndex(t => new Date(t) >= now);
+  if(start < 0) start = 0;
+  for(let i=start; i<Math.min(start+24, d.hourly.time.length); i++){
+    const dt = new Date(d.hourly.time[i]);
+    const el = document.createElement('div');
+    el.className='h';
+    el.innerHTML = '<div class="hh">'+NERV.two(dt.getHours())+':00</div><div class="ht">'+Math.round(d.hourly.temperature_2m[i])+'°</div>'+
+      '<div class="hc">'+(d.hourly.precipitation_probability ? d.hourly.precipitation_probability[i]+'% P' : '')+'</div>'+
+      '<div class="hc">'+(CODES[d.hourly.weather_code[i]]||'').slice(0,10)+'</div>';
+    h.appendChild(el);
+  }
+  // daily
+  const dd = document.getElementById('days'); dd.innerHTML='';
+  const mins = d.daily.temperature_2m_min, maxs = d.daily.temperature_2m_max;
+  const lo = Math.min(...mins), hi = Math.max(...maxs);
+  d.daily.time.forEach((t,i)=>{
+    const dt = new Date(t+'T12:00:00');
+    const l = Math.round(mins[i]), hh = Math.round(maxs[i]);
+    const w1 = (l-lo)/(hi-lo||1)*100, w2 = (hh-lo)/(hi-lo||1)*100;
+    const r = document.createElement('div');
+    r.className='dr';
+    r.innerHTML = '<span class="dd">'+(i===0?'TODAY':DOW[dt.getDay()]+' '+(dt.getMonth()+1)+'/'+dt.getDate())+'</span>'+
+      '<span class="dc">'+(CODES[d.daily.weather_code[i]]||'')+(d.daily.precipitation_probability_max[i] ? ' — '+d.daily.precipitation_probability_max[i]+'% P' : '')+'</span>'+
+      '<span class="dbar"><span class="f" style="left:'+w1+'%;width:'+Math.max(3,(w2-w1))+'%"></span></span>'+
+      '<span class="dt">'+l+'° / '+hh+'°</span>';
+    dd.appendChild(r);
+  });
+}
+// search
+let searchT;
+async function geocode(q){
+  const r = await fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(q)+'&count=5&language=en&format=json');
+  const d = await r.json();
+  const box = document.getElementById('geo-results');
+  box.innerHTML='';
+  (d.results||[]).forEach(g=>{
+    const b = document.createElement('button');
+    const label = [g.name, g.admin1, g.country].filter(Boolean).join(', ');
+    b.textContent = label.toUpperCase();
+    b.onclick = ()=>{ box.innerHTML=''; document.getElementById('city').value=''; load({name:label, lat:g.latitude, lon:g.longitude}); NERV.blip(1200,.05); };
+    box.appendChild(b);
+  });
+  if(!(d.results||[]).length) err('NO STATION MATCHES THAT NAME.');
+}
+document.getElementById('search').onclick = ()=>{
+  const q = document.getElementById('city').value.trim();
+  if(q) geocode(q);
+};
+document.getElementById('city').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('search').click(); });
+document.getElementById('city').addEventListener('input', function(){
+  clearTimeout(searchT);
+  const q = this.value.trim();
+  if(q.length >= 3) searchT = setTimeout(()=>geocode(q), 450);
+});
+document.getElementById('gps').onclick = ()=>{
+  if(!navigator.geolocation) return err('GEOLOCATION NOT AVAILABLE ON THIS TERMINAL.');
+  navigator.geolocation.getCurrentPosition(
+    pos => load({name:'LOCAL POSITION '+pos.coords.latitude.toFixed(2)+','+pos.coords.longitude.toFixed(2), lat:pos.coords.latitude, lon:pos.coords.longitude}),
+    () => err('POSITION REQUEST DENIED.')
+  );
+};
+load(lastPlace);
+</script>
+</body>
+</html>
