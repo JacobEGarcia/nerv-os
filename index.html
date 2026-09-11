@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script>if(localStorage.getItem('nerv-theme')==='green')document.documentElement.classList.add('green');</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NERV OS — Central Hub</title>
+<meta name="theme-color" content="#080502">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Shippori+Mincho+B1:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="nerv.css">
+<style>
+.hero{display:grid; grid-template-columns:1.2fr .8fr; gap:18px; margin-bottom:18px}
+@media(max-width:820px){.hero{grid-template-columns:1fr}}
+.boot{font-size:12px; min-height:150px; color:var(--ink-dim)}
+.boot div::before{content:"> "; color:var(--ink-faint)}
+.bigtime{font-family:var(--mincho); font-weight:800; font-size:clamp(44px,8vw,84px); letter-spacing:.06em; color:var(--ink-hi); line-height:1}
+.hexgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px}
+@media(max-width:640px){.hexgrid{grid-template-columns:repeat(2,1fr)}}
+.tile{
+  border:1px solid var(--hair); background:var(--panel); padding:18px 16px 14px; position:relative;
+  display:flex; flex-direction:column; gap:8px; min-height:130px; transition:background .15s;
+}
+.tile:hover{background:rgba(87,255,143,.07)}
+.tile:hover .tname{color:var(--ink-hi)}
+.tile .thex{width:34px; height:30px; position:relative; margin-bottom:4px}
+.tile .thex .hex{position:absolute; inset:0; background:var(--ink-faint)}
+.tile .thex .hex.in{inset:3px; background:var(--bg)}
+.tile:hover .thex .hex{background:var(--ink-dim)}
+.tile .tname{font-family:var(--mincho); font-weight:800; font-size:22px; letter-spacing:.1em; color:var(--ink)}
+.tile .tjp{font-size:10px; letter-spacing:.4em; color:var(--ink-dim)}
+.tile .tdesc{font-size:11px; color:var(--ink-dim); line-height:1.5}
+.tile .tgo{margin-top:auto; font-size:9px; letter-spacing:.3em; color:var(--ink-faint)}
+.tile:hover .tgo{color:var(--ink)}
+#wave{width:100%; height:120px; display:block}
+.hexrow{display:flex; gap:6px; align-items:center; margin:6px 0 2px}
+.hexrow .hx{width:16px; height:14px; background:var(--hair-dim); clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)}
+.hexrow .hx.hot{background:var(--red)}
+.hexrow .hx.warm{background:var(--amber)}
+.hexrow .hx.live{background:var(--ink)}
+</style>
+</head>
+<body>
+<div id="bootov">
+  <div class="fig">NERV</div>
+  <div class="sub">特務機関 — PRACTICAL TERMINAL OS v2.0</div>
+  <div class="lines" id="bootlines"></div>
+  <div class="bar"><div class="f" id="bootbar"></div></div>
+  <div class="skip">TAP TO SKIP</div>
+</div>
+<main>
+  <div class="hero">
+    <div class="panel tickbox">
+      <div class="cap">SYSTEM BOOT — 起動</div>
+      <div class="stripes" style="margin-bottom:10px"></div>
+      <div class="boot" id="boot"></div>
+      <div class="hexrow" id="hexrow"></div>
+      <div class="ro"><span class="k">MAGI MELCHIOR</span><span class="v">NOMINAL</span></div>
+      <div class="ro"><span class="k">MAGI BALTHASAR</span><span class="v">NOMINAL</span></div>
+      <div class="ro"><span class="k">MAGI CASPER</span><span class="v">NOMINAL</span></div>
+      <div class="ro"><span class="k">A.T. FIELD</span><span class="v">NEUTRALIZED</span></div>
+      <div class="ro"><span class="k">PILOT SYNCH</span><span class="v" id="synch">--%</span></div>
+    </div>
+    <div class="panel tickbox">
+      <div class="cap">LOCAL TIME — 現在時刻</div>
+      <div class="bigtime glow" data-clock>--:--:--</div>
+      <div class="jp dim small" style="margin:6px 0 14px">第3新東京市 — TOKYO-3 STANDARD</div>
+      <div class="ro"><span class="k">DATE</span><span class="v" data-date></span></div>
+      <div class="ro"><span class="k">MODE</span><span class="v">CONDITION GREEN</span></div>
+      <div class="ro"><span class="k">INTERNAL CLOCK</span><span class="v">SYNCED</span></div>
+      <canvas id="wave"></canvas>
+      <div class="small dim" style="letter-spacing:.3em; margin-top:4px">EXTREME WAVEFORM — MONITORING</div>
+    </div>
+  </div>
+
+  <div class="phead">
+    <h1 class="glow">TERMINAL DOGMA</h1>
+    <span class="jp">実用端末群</span>
+    <div class="code">SYS.VER 2.0<br>6 MODULES ONLINE</div>
+  </div>
+
+  <div class="motto">GOD'S IN HIS HEAVEN — ALL'S RIGHT WITH THE WORLD</div>
+  <div class="hexgrid">
+    <a class="tile" href="clock.html">
+      <div class="thex"><div class="hex"></div><div class="hex in"></div></div>
+      <div class="tname">CHRONO</div><div class="tjp">時計 — CLOCK</div>
+      <div class="tdesc">World clock, alarms with full siren, stopwatch. Condition-red alerts when an alarm fires.</div>
+      <div class="tgo">OPEN MODULE →</div>
+    </a>
+    <a class="tile" href="timer.html">
+      <div class="thex"><div class="hex"></div><div class="hex in"></div></div>
+      <div class="tname">YASHIMA</div><div class="tjp">作戦 — OPERATION TIMER</div>
+      <div class="tdesc">Countdown and focus operations. 25:00 / 05:00 presets, cycle tracking, power-grid countdown.</div>
+      <div class="tgo">OPEN MODULE →</div>
+    </a>
+    <a class="tile" href="todo.html">
+      <div class="thex"><div class="hex"></div><div class="hex in"></div></div>
+      <div class="tname">DIRECTIVE</div><div class="tjp">任務 — MISSIONS</div>
+      <div class="tdesc">Mission list with priority classes A/B/C, completion sync-rate, persistent across sessions.</div>
+      <div class="tgo">OPEN MODULE →</div>
+    </a>
+    <a class="tile" href="notes.html">
+      <div class="thex"><div class="hex"></div><div class="hex in"></div></div>
+      <div class="tname">LOG</div><div class="tjp">記録 — FIELD LOG</div>
+      <div class="tdesc">Encrypted-feel field notes. Autosaved, searchable, exportable to plain text.</div>
+      <div class="tgo">OPEN MODULE →</div>
+    </a>
+    <a class="tile" href="calc.html">
+      <div class="thex"><div class="hex"></div><div class="hex in"></div></div>
+      <div class="tname">MAGI CALC</div><div class="tjp">演算 — COMPUTATION</div>
+      <div class="tdesc">Full calculator with keyboard input, operation tape, and three-supercomputer consensus.</div>
+      <div class="tgo">OPEN MODULE →</div>
+    </a>
+    <a class="tile" href="weather.html">
+      <div class="thex"><div class="hex"></div><div class="hex in"></div></div>
+      <div class="tname">ATMO</div><div class="tjp">気象 — ATMOSPHERICS</div>
+      <div class="tdesc">Live weather readout for any city on the grid. Current, hourly, seven-day outlook.</div>
+      <div class="tgo">OPEN MODULE →</div>
+    </a>
+  </div>
+</main>
+<script src="nerv.js"></script>
+<script>
+NERV.shell('HUB');
+// first-visit-per-session boot drama
+(function(){
+  const ov = document.getElementById('bootov');
+  if(sessionStorage.getItem('nerv-booted')){ ov.remove(); return; }
+  const lines = [
+    'NERV OS v2.0 — practical terminal interface',
+    'MAGI MELCHIOR ......... ONLINE',
+    'MAGI BALTHASAR ........ ONLINE',
+    'MAGI CASPER ........... ONLINE',
+    'pilot biometric ....... ACCEPTED',
+    'GOD\'S IN HIS HEAVEN. ALL\'S RIGHT WITH THE WORLD.'
+  ];
+  const bar = document.getElementById('bootbar');
+  let i = 0;
+  const iv = setInterval(()=>{ bar.style.width = Math.min(100, (i++/lines.length)*100 + 8) + '%'; }, 180);
+  function finish(){
+    if(!document.getElementById('bootov')) return;
+    clearInterval(iv); bar.style.width = '100%';
+    sessionStorage.setItem('nerv-booted','1');
+    setTimeout(()=>{ ov.classList.add('out'); setTimeout(()=>ov.remove(), 450); }, 250);
+  }
+  ov.addEventListener('click', finish);
+  NERV.boot(document.getElementById('bootlines'), lines, finish);
+})();
+NERV.boot(document.getElementById('boot'), [
+  'NERV OS v2.0 — central dogma terminal',
+  'biometric scan .......... ACCEPTED',
+  'loading practical modules ...... 6/6',
+  'atmo feed ................ LINKED',
+  'sound .................... ' + (NERV.soundOn() ? 'ENABLED' : 'MUTED (toggle top-right)'),
+  'all systems nominal. welcome, pilot.'
+]);
+// hex status row
+const hr = document.getElementById('hexrow');
+for(let i=0;i<14;i++){
+  const h = document.createElement('div');
+  h.className = 'hx' + (i===2 ? ' hot' : (i===6 ? ' warm' : ' live'));
+  h.style.opacity = (0.4 + Math.random()*0.6).toFixed(2);
+  hr.appendChild(h);
+}
+// synch meter drifts
+const sy = document.getElementById('synch');
+setInterval(()=>{ sy.textContent = (41 + Math.random()*3).toFixed(1) + '%'; }, 1400);
+sy.textContent = '41.3%';
+// waveform canvas
+const cv = document.getElementById('wave'), cx = cv.getContext('2d');
+function fit(){ cv.width = cv.clientWidth * devicePixelRatio; cv.height = 120 * devicePixelRatio; }
+fit(); addEventListener('resize', fit);
+let t = 0;
+(function draw(){
+  t += .03;
+  const cs = getComputedStyle(document.documentElement);
+  cx.clearRect(0,0,cv.width,cv.height);
+  // grid dots
+  cx.fillStyle = cs.getPropertyValue('--hair');
+  for(let x=0;x<cv.width;x+=14*devicePixelRatio) for(let y=0;y<cv.height;y+=14*devicePixelRatio) cx.fillRect(x,y,devicePixelRatio,devicePixelRatio);
+  cx.strokeStyle = cs.getPropertyValue('--ink').trim(); cx.lineWidth = 1.4*devicePixelRatio;
+  cx.shadowColor = cs.getPropertyValue('--glow1').trim(); cx.shadowBlur = 6*devicePixelRatio;
+  cx.beginPath();
+  for(let x=0;x<=cv.width;x+=3){
+    const p = x/cv.width;
+    const spike = Math.max(0, Math.sin(p*Math.PI*3 + t*.7) - .86) * 9;
+    const y = cv.height*.5 + Math.sin(p*9 + t)*cv.height*.16 + Math.sin(p*23 - t*1.7)*cv.height*.07 - spike*cv.height*.1;
+    x===0 ? cx.moveTo(x,y) : cx.lineTo(x,y);
+  }
+  cx.stroke();
+  requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>
+
