@@ -1,0 +1,216 @@
+/* NERV OS — NERV-terminal design system. Default: AMBER. html.green: PHOSPHOR. */
+:root{
+  --bg:#080502; --panel:#0c0803; --panel2:#120b04;
+  --ink:#ffb000; --ink-hi:#ffd57a; --ink-dim:#b07a10; --ink-faint:#5c3f08;
+  --glow1:rgba(255,176,0,.55); --glow2:rgba(255,176,0,.18);
+  --warn:#ffc933; --red:#ff3b30;
+  --hair:rgba(255,176,0,.24); --hair-dim:rgba(255,176,0,.11);
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --mincho:'Shippori Mincho B1','Times New Roman',serif;
+}
+html.green{
+  --bg:#040804; --panel:#060c07; --panel2:#081108;
+  --ink:#57ff8f; --ink-hi:#b7ffd0; --ink-dim:#2f9958; --ink-faint:#164a2b;
+  --glow1:rgba(87,255,143,.55); --glow2:rgba(87,255,143,.18);
+  --warn:#ffb000;
+  --hair:rgba(87,255,143,.22); --hair-dim:rgba(87,255,143,.10);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{background:var(--bg)}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--mono);
+  font-size:14px; line-height:1.5; min-height:100vh;
+  display:flex; flex-direction:column; overflow-x:hidden;
+  animation:crt-on .45s ease-out;
+}
+@keyframes crt-on{
+  0%{opacity:0; filter:brightness(3) saturate(.4)}
+  25%{opacity:1; filter:brightness(.6)}
+  45%{filter:brightness(1.6)}
+  100%{filter:brightness(1)}
+}
+::selection{background:var(--ink); color:#000}
+a{color:inherit; text-decoration:none}
+button{font-family:var(--mono); cursor:pointer}
+input,select,textarea{font-family:var(--mono); font-size:14px}
+
+.crt::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:900;
+  background:repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0 1px, transparent 1px 3px);
+  opacity:.5;
+}
+.crt::after{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:901;
+  background:radial-gradient(120% 90% at 50% 40%, transparent 55%, rgba(0,0,0,.5) 100%);
+}
+.glow{text-shadow:0 0 6px var(--glow1), 0 0 22px var(--glow2)}
+.glow-amber{color:var(--warn); text-shadow:0 0 6px var(--glow1)}
+.glow-red{color:var(--red); text-shadow:0 0 6px rgba(255,59,48,.5)}
+
+.topbar{
+  display:flex; align-items:stretch; gap:0; border-bottom:1px solid var(--hair);
+  background:var(--panel); position:sticky; top:0; z-index:50;
+}
+.topbar .brand{
+  padding:10px 16px; border-right:1px solid var(--hair); display:flex; align-items:center; gap:10px;
+}
+.topbar .brand .fig{font-family:var(--mincho); font-weight:800; font-size:18px; letter-spacing:.14em; color:var(--ink-hi)}
+.topbar .brand .jp{font-size:10px; color:var(--ink-dim); letter-spacing:.3em}
+.topbar nav{display:flex; flex:1; overflow-x:auto}
+.topbar nav a{
+  padding:10px 14px; border-right:1px solid var(--hair-dim); font-size:11px; letter-spacing:.18em;
+  color:var(--ink-dim); white-space:nowrap; display:flex; align-items:center; gap:8px;
+  transition:color .12s, background .12s;
+}
+.topbar nav a:hover{background:var(--hair-dim); color:var(--ink)}
+.topbar nav a.on{color:#000; background:var(--ink); text-shadow:none}
+.topbar .sys{padding:10px 16px; border-left:1px solid var(--hair); font-size:11px; letter-spacing:.12em;
+  display:flex; align-items:center; gap:14px; color:var(--ink-dim); white-space:nowrap}
+.topbar .sys b{color:var(--ink); font-weight:600}
+.dot{width:7px;height:7px;background:var(--red);border-radius:50%;animation:blink 1.1s steps(2,start) infinite}
+@keyframes blink{50%{opacity:.1}}
+
+main{flex:1; width:100%; max-width:1180px; margin:0 auto; padding:22px 18px 40px}
+main > *{animation:rise .35s ease-out backwards}
+main > *:nth-child(2){animation-delay:.05s}
+main > *:nth-child(3){animation-delay:.1s}
+main > *:nth-child(4){animation-delay:.15s}
+@keyframes rise{from{opacity:0; transform:translateY(8px)}to{opacity:1; transform:none}}
+.ticker{
+  border-top:1px solid var(--hair); background:var(--panel); color:var(--ink-dim);
+  font-size:10px; letter-spacing:.22em; padding:7px 16px; white-space:nowrap; overflow:hidden;
+}
+.ticker span{display:inline-block; animation:tick 40s linear infinite}
+@keyframes tick{from{transform:translateX(100vw)}to{transform:translateX(-100%)}}
+
+.phead{display:flex; align-items:baseline; gap:16px; border-bottom:1px solid var(--hair); padding-bottom:12px; margin-bottom:18px; flex-wrap:wrap}
+.phead h1{font-family:var(--mincho); font-weight:800; font-size:clamp(28px,5vw,44px); letter-spacing:.1em; color:var(--ink-hi); line-height:1}
+.phead .jp{color:var(--ink-dim); font-size:12px; letter-spacing:.4em}
+.phead .code{margin-left:auto; font-size:10px; color:var(--ink-dim); letter-spacing:.2em; text-align:right}
+
+.panel{border:1px solid var(--hair); background:var(--panel); position:relative; padding:14px; transition:border-color .15s}
+.panel:hover{border-color:var(--glow1)}
+.panel .cap{
+  position:absolute; top:-8px; left:10px; background:var(--bg); padding:0 8px;
+  font-size:9px; letter-spacing:.3em; color:var(--ink-dim);
+}
+.panel + .panel{margin-top:18px}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+.grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+@media(max-width:820px){.grid2,.grid3{grid-template-columns:1fr}}
+
+.tickbox{position:relative}
+.tickbox::before,.tickbox::after{content:""; position:absolute; width:8px; height:8px; border:1px solid var(--ink-dim)}
+.tickbox::before{top:-1px; left:-1px; border-right:0; border-bottom:0}
+.tickbox::after{bottom:-1px; right:-1px; border-left:0; border-top:0}
+
+.btn{
+  background:transparent; border:1px solid var(--hair); color:var(--ink);
+  padding:8px 14px; font-size:11px; letter-spacing:.22em; text-transform:uppercase;
+  transition:background .1s, color .1s, transform .05s, box-shadow .15s;
+}
+.btn:hover{background:var(--ink); color:#000; text-shadow:none; box-shadow:0 0 14px var(--glow1)}
+.btn:active{transform:scale(.95)}
+.btn.warn{border-color:var(--warn); color:var(--warn)}
+.btn.warn:hover{background:var(--warn); color:#000}
+.btn.danger{border-color:var(--red); color:var(--red)}
+.btn.danger:hover{background:var(--red); color:#000}
+.btn.solid{background:var(--ink); color:#000; font-weight:600}
+.btn.solid:hover{background:var(--ink-hi)}
+.inp{
+  background:#000; border:1px solid var(--hair); color:var(--ink-hi);
+  padding:8px 10px; letter-spacing:.06em; width:100%; transition:border-color .12s, box-shadow .12s;
+}
+.inp:focus{outline:0; border-color:var(--ink-dim); box-shadow:0 0 10px var(--glow2)}
+.inp::placeholder{color:var(--ink-faint)}
+label.lab{display:block; font-size:9px; letter-spacing:.3em; color:var(--ink-dim); margin:10px 0 4px; text-transform:uppercase}
+
+.stripes{height:8px; background:repeating-linear-gradient(-45deg, var(--warn) 0 10px, #000 10px 20px); opacity:.85}
+.stripes.red{background:repeating-linear-gradient(-45deg, var(--red) 0 10px, #000 10px 20px)}
+
+.ro{display:flex; justify-content:space-between; font-size:11px; padding:3px 0; border-bottom:1px dashed var(--hair-dim)}
+.ro .k{color:var(--ink-dim); letter-spacing:.18em}
+.ro .v{color:var(--ink-hi)}
+.dim{color:var(--ink-dim)} .amber{color:var(--warn)} .red{color:var(--red)}
+.small{font-size:10px; letter-spacing:.14em}
+
+.hex{clip-path:polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); background:var(--hair-dim)}
+
+/* satisfying check pulse */
+@keyframes pulse-ring{0%{box-shadow:0 0 0 0 var(--glow1)}100%{box-shadow:0 0 0 12px transparent}}
+.pulse{animation:pulse-ring .5s ease-out}
+@keyframes flash{0%{filter:brightness(2.2)}100%{filter:brightness(1)}}
+.flash{animation:flash .25s ease-out}
+
+.emg{
+  position:fixed; inset:0; z-index:950; display:none; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.82); flex-direction:column; gap:18px;
+}
+.emg.on{display:flex}
+.emg .word{
+  font-family:var(--mincho); font-weight:800; color:var(--red); font-size:clamp(40px,10vw,96px);
+  letter-spacing:.18em; animation:blink .5s steps(2,start) infinite; text-shadow:0 0 30px rgba(255,59,48,.6);
+}
+footer{clear:both}
+
+/* ---- NGE signature layer ---- */
+.vcap{
+  position:fixed; top:90px; bottom:60px; writing-mode:vertical-rl;
+  font-size:10px; letter-spacing:.55em; color:var(--ink-faint); z-index:10; pointer-events:none;
+  font-family:var(--mincho);
+}
+.vcap.left{left:10px} .vcap.right{right:10px}
+@media(max-width:1150px){.vcap{display:none}}
+
+/* episode title-card transition */
+.tcard{
+  position:fixed; inset:0; background:#000; z-index:940; display:flex; align-items:center; justify-content:center;
+  flex-direction:column; gap:16px; opacity:0; pointer-events:none; transition:opacity .12s linear;
+}
+.tcard.on{opacity:1}
+.tcard .no{font-size:10px; letter-spacing:.6em; color:var(--ink-dim)}
+.tcard .jp{font-family:var(--mincho); color:#fff; font-size:13px; letter-spacing:.7em; padding-left:.7em}
+.tcard .en{font-family:var(--mincho); font-weight:800; color:#fff; font-size:clamp(30px,6vw,58px); letter-spacing:.22em; padding-left:.22em; text-align:center}
+
+/* A.T. field ripple */
+.atf{position:fixed; pointer-events:none; z-index:930; width:0; height:0}
+.atf svg{position:absolute; transform:translate(-50%,-50%); color:var(--ink); opacity:0; animation:atf .7s cubic-bezier(.2,.7,.3,1) forwards}
+.atf svg:nth-child(2){animation-delay:.08s}
+.atf svg:nth-child(3){animation-delay:.16s}
+@keyframes atf{
+  0%{opacity:.95; width:6px; height:6px}
+  70%{opacity:.5}
+  100%{opacity:0; width:120px; height:120px}
+}
+
+/* emergency overlay — full 警報 treatment */
+.emg{background:rgba(24,2,0,.92)}
+.emg::before,.emg::after{
+  content:""; position:absolute; left:0; right:0; height:26px;
+  background:repeating-linear-gradient(-45deg, var(--red) 0 16px, #000 16px 32px);
+  background-size:200% 100%; animation:tape .6s linear infinite;
+}
+.emg::before{top:0} .emg::after{bottom:0; animation-direction:reverse}
+@keyframes tape{to{background-position:45px 0}}
+.emg .jpw{font-family:var(--mincho); color:var(--red); font-size:clamp(20px,4vw,36px); letter-spacing:.8em; padding-left:.8em}
+
+/* boot overlay (hub) */
+#bootov{
+  position:fixed; inset:0; background:#000; z-index:960; display:flex; align-items:center; justify-content:center;
+  flex-direction:column; gap:22px; cursor:pointer; transition:opacity .4s;
+}
+#bootov.out{opacity:0; pointer-events:none}
+#bootov .fig{font-family:var(--mincho); font-weight:800; font-size:clamp(50px,12vw,110px); letter-spacing:.3em; padding-left:.3em; color:#fff}
+#bootov .sub{font-size:10px; letter-spacing:.5em; color:var(--ink-dim)}
+#bootov .lines{width:min(520px,86vw); min-height:120px; font-size:11px; color:var(--ink)}
+#bootov .lines div::before{content:"> "; color:var(--ink-faint)}
+#bootov .bar{width:min(520px,86vw); height:6px; border:1px solid var(--hair)}
+#bootov .bar .f{height:100%; width:0; background:var(--ink); box-shadow:0 0 10px var(--glow1); transition:width .2s}
+#bootov .skip{font-size:9px; letter-spacing:.4em; color:var(--ink-faint)}
+
+/* motto + caution tape */
+.motto{font-family:var(--mincho); color:var(--ink-dim); letter-spacing:.34em; font-size:12px; margin:-4px 0 18px; text-align:center}
+.tape-label{
+  display:inline-block; font-size:8px; letter-spacing:.35em; color:#000; background:var(--warn);
+  padding:2px 8px; margin-left:10px; vertical-align:middle;
+}
