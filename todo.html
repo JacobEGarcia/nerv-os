@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script>if(localStorage.getItem('nerv-theme')==='green')document.documentElement.classList.add('green');</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NERV OS — DIRECTIVE</title>
+<meta name="theme-color" content="#080502">
+<link rel="manifest" href="../manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Shippori+Mincho+B1:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="nerv.css">
+<style>
+.syncbar{height:14px; border:1px solid var(--hair); position:relative; overflow:hidden}
+.syncbar .f{position:absolute; inset:0; width:0; background:var(--ink); transition:width .4s; box-shadow:0 0 12px rgba(87,255,143,.6)}
+.mrow{display:flex; align-items:center; gap:10px; border-bottom:1px dashed var(--hair-dim); padding:9px 2px}
+.mrow .pr{font-size:10px; letter-spacing:.2em; border:1px solid; padding:2px 7px; white-space:nowrap}
+.mrow .pr.A{color:var(--red); border-color:var(--red)}
+.mrow .pr.B{color:var(--amber); border-color:var(--amber)}
+.mrow .pr.C{color:var(--ink-dim); border-color:var(--ink-dim)}
+.mrow .tx{flex:1; letter-spacing:.04em; color:var(--ink-hi)}
+.mrow.done .tx{color:var(--ink-faint); text-decoration:line-through}
+.mrow .chk{width:16px; height:16px; border:1px solid var(--ink-dim); cursor:pointer; flex:none}
+.mrow.done .chk{background:var(--ink); box-shadow:0 0 8px var(--glow1)}
+.mrow .tx{position:relative}
+.mrow .tx::after{content:''; position:absolute; left:0; top:50%; height:1px; width:0; background:var(--ink-faint); transition:width .3s ease-out}
+.mrow.done .tx::after{width:100%}
+select{background:#000; border:1px solid var(--hair); color:var(--ink-hi); padding:8px}
+.filters{display:flex; gap:8px; margin:12px 0}
+.filters .btn.on{background:var(--ink); color:#000}
+</style>
+</head>
+<body>
+<main>
+  <div class="phead">
+    <h1 class="glow">DIRECTIVE</h1><span class="jp">任務一覧</span>
+    <div class="code">MODULE 03<br>MISSION CONTROL</div>
+  </div>
+  <div class="grid2">
+    <div class="panel tickbox">
+      <div class="cap">NEW DIRECTIVE — 新任務</div>
+      <label class="lab">Mission description</label>
+      <input class="inp" id="t-text" placeholder="E.G. FINISH WEEK TWO POSTER SWEEP" maxlength="120">
+      <label class="lab">Priority class</label>
+      <select id="t-pr">
+        <option value="A">A — CRITICAL / ANGEL-CLASS</option>
+        <option value="B" selected>B — STANDARD OPERATION</option>
+        <option value="C">C — LOW / MAINTENANCE</option>
+      </select>
+      <div style="margin-top:14px"><button class="btn solid" id="t-add">ISSUE DIRECTIVE</button></div>
+      <div class="small dim" style="margin-top:10px">STORED LOCALLY — PERSISTS BETWEEN SORTIES.</div>
+    </div>
+    <div>
+      <div class="panel">
+        <div class="cap">SYNCH RATE — 同期率</div>
+        <div class="ro"><span class="k">COMPLETE</span><span class="v" id="st-done">0 / 0</span></div>
+        <div class="ro"><span class="k">CLASS A OPEN</span><span class="v red" id="st-a">0</span></div>
+        <div class="syncbar" style="margin-top:10px"><div class="f" id="st-bar"></div></div>
+        <div class="small dim" style="margin-top:6px" id="st-pct">0% SYNCHRONIZED</div>
+      </div>
+      <div class="panel">
+        <div class="cap">ACTIVE DIRECTIVES — 任務</div>
+        <div class="filters">
+          <button class="btn on" data-f="all">ALL</button>
+          <button class="btn" data-f="open">OPEN</button>
+          <button class="btn" data-f="done">DONE</button>
+          <button class="btn warn" id="t-clear" style="margin-left:auto">PURGE DONE</button>
+        </div>
+        <div id="list"></div>
+      </div>
+    </div>
+  </div>
+</main>
+<script src="nerv.js"></script>
+<script>
+NERV.shell('DIRECTIVE');
+let items = NERV.store.get('todo', []);
+let filter = 'all';
+function save(){ NERV.store.set('todo', items); }
+function render(){
+  const list = document.getElementById('list');
+  const shown = items.filter(t => filter==='all' || (filter==='done') === !!t.done);
+  list.innerHTML = shown.length ? '' : '<div class="small dim" style="padding:8px 0">NO DIRECTIVES IN VIEW.</div>';
+  shown.forEach(t=>{
+    const i = items.indexOf(t);
+    const r = document.createElement('div');
+    r.className = 'mrow' + (t.done ? ' done' : '');
+    r.innerHTML = '<div class="chk"></div><span class="pr '+t.pr+'">'+t.pr+'</span><span class="tx"></span>';
+    r.querySelector('.tx').textContent = t.text;
+    r.querySelector('.chk').onclick = ()=>{ t.done = !t.done; save(); render(); if(t.done){ NERV.chime(); NERV.atFieldOn(r.querySelector('.chk')); const bar=document.getElementById('st-bar'); bar.classList.remove('pulse'); void bar.offsetWidth; bar.classList.add('pulse'); } };
+    const del = document.createElement('button');
+    del.className='btn danger'; del.style.padding='3px 8px'; del.textContent='DEL';
+    del.onclick = ()=>{ items.splice(i,1); save(); render(); };
+    r.appendChild(del);
+    list.appendChild(r);
+  });
+  const done = items.filter(t=>t.done).length;
+  document.getElementById('st-done').textContent = done + ' / ' + items.length;
+  document.getElementById('st-a').textContent = items.filter(t=>t.pr==='A' && !t.done).length;
+  const pct = items.length ? Math.round(done/items.length*100) : 0;
+  document.getElementById('st-bar').style.width = pct + '%';
+  document.getElementById('st-pct').textContent = pct + '% SYNCHRONIZED';
+}
+document.getElementById('t-add').onclick = ()=>{
+  const el = document.getElementById('t-text');
+  const v = el.value.trim();
+  if(!v) return;
+  items.unshift({text:v, pr:document.getElementById('t-pr').value, done:false, ts:Date.now()});
+  el.value=''; save(); render(); NERV.blip(1200,.05);
+};
+document.getElementById('t-text').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('t-add').click(); });
+document.querySelectorAll('[data-f]').forEach(b=>{
+  b.onclick = ()=>{
+    filter = b.dataset.f;
+    document.querySelectorAll('[data-f]').forEach(x=>x.classList.toggle('on', x===b));
+    render(); NERV.blip(900,.03);
+  };
+});
+document.getElementById('t-clear').onclick = ()=>{ items = items.filter(t=>!t.done); save(); render(); };
+render();
+</script>
+</body>
+</html>
