@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script>if(localStorage.getItem('nerv-theme')==='green')document.documentElement.classList.add('green');</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NERV OS — YASHIMA TIMER</title>
+<meta name="theme-color" content="#080502">
+<link rel="manifest" href="../manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Shippori+Mincho+B1:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="nerv.css">
+<style>
+.tface{font-family:var(--mincho); font-weight:800; font-size:clamp(60px,12vw,130px); text-align:center; color:var(--ink-hi); line-height:1; letter-spacing:.02em}
+.phase{text-align:center; font-size:11px; letter-spacing:.5em; color:var(--ink-dim); margin:8px 0}
+.phase.hot{color:var(--amber)}
+.pbar{height:10px; border:1px solid var(--hair); margin:14px 0; position:relative; overflow:hidden}
+.pbar .fill{position:absolute; inset:0; width:100%; background:var(--ink); transition:width .3s linear; box-shadow:0 0 12px var(--glow1)}
+.pbar.running .fill{animation:fillpulse 1.2s ease-in-out infinite}
+@keyframes fillpulse{50%{filter:brightness(1.5)}}
+.pbar.rest .fill{background:var(--warn); box-shadow:0 0 12px var(--glow1)}
+.presets{display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:10px}
+.row{display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:12px}
+.cyc{display:flex; gap:8px; justify-content:center; margin-top:10px}
+.cyc .c{width:14px; height:14px; border:1px solid var(--hair)}
+.cyc .c.done{background:var(--ink); box-shadow:0 0 8px rgba(87,255,143,.6)}
+input[type=number]{width:70px; background:#000; border:1px solid var(--hair); color:var(--ink-hi); padding:8px; font-size:16px; text-align:center}
+</style>
+</head>
+<body>
+<main>
+  <div class="phead">
+    <h1 class="glow">YASHIMA</h1><span class="jp">作戦タイマー</span>
+    <div class="code">MODULE 02<br>OPERATION TIMER</div>
+  </div>
+  <div class="panel tickbox" style="max-width:760px; margin:0 auto">
+    <div class="cap">OPERATION CLOCK — 作戦時間</div>
+    <div class="stripes" style="margin-bottom:10px"></div>
+    <div class="phase" id="phase">STANDBY — SET OPERATION LENGTH</div>
+    <div class="tface glow" id="face">25:00</div>
+    <div class="pbar" id="pbar"><div class="fill" id="fill"></div></div>
+    <div class="presets">
+      <button class="btn" data-set="300">05:00<br><span class="small dim">SHORT REST</span></button>
+      <button class="btn" data-set="900">15:00<br><span class="small dim">LONG REST</span></button>
+      <button class="btn solid" data-set="1500">25:00<br><span class="small dim">FOCUS OP</span></button>
+      <button class="btn" data-set="3000">50:00<br><span class="small dim">DEEP OP</span></button>
+      <button class="btn" data-set="3600">60:00<br><span class="small dim">FULL POWER</span></button>
+    </div>
+    <div class="row" style="align-items:center">
+      <span class="small dim">CUSTOM</span>
+      <input type="number" id="c-min" min="0" max="999" value="25"><span class="dim">MIN</span>
+      <input type="number" id="c-sec" min="0" max="59" value="0"><span class="dim">SEC</span>
+      <button class="btn" id="c-set">SET</button>
+    </div>
+    <div class="row">
+      <button class="btn solid" id="go">COMMENCE</button>
+      <button class="btn warn" id="hold">HOLD</button>
+      <button class="btn danger" id="abort">ABORT</button>
+    </div>
+    <div class="cyc" id="cyc"></div>
+    <div class="small dim" style="text-align:center; margin-top:6px">COMPLETED FOCUS OPERATIONS THIS SESSION</div>
+  </div>
+  <div class="panel" style="max-width:760px; margin:18px auto 0">
+    <div class="cap">DOCTRINE — 運用指針</div>
+    <div class="ro"><span class="k">FOCUS OP</span><span class="v">25 MIN OF SINGLE-TARGET WORK</span></div>
+    <div class="ro"><span class="k">SHORT REST</span><span class="v">5 MIN AFTER EACH OP</span></div>
+    <div class="ro"><span class="k">LONG REST</span><span class="v">15 MIN AFTER FOUR OPS</span></div>
+    <div class="ro"><span class="k">SIGNAL</span><span class="v">CHIME AT COMPLETION, SIREN IF IGNORED</span></div>
+  </div>
+</main>
+<script src="nerv.js"></script>
+<script>
+NERV.shell('YASHIMA');
+let total = 1500, left = 1500, run = false, last = 0, isRest = false, done = 0;
+const face = document.getElementById('face'), fill = document.getElementById('fill'),
+      phase = document.getElementById('phase'), pbar = document.getElementById('pbar'),
+      go = document.getElementById('go');
+function paint(){
+  const m = Math.floor(left/60), s = left%60;
+  face.textContent = NERV.two(m)+':'+NERV.two(s);
+  fill.style.width = (total ? (left/total*100) : 0) + '%';
+}
+function setT(sec, rest){
+  total = left = sec; run = false; isRest = !!rest;
+  go.textContent = 'COMMENCE';
+  phase.textContent = rest ? 'REST WINDOW' : 'STANDBY — SET OPERATION LENGTH';
+  phase.className = 'phase' + (rest ? ' hot' : '');
+  pbar.className = 'pbar' + (rest ? ' rest' : '');
+  paint();
+}
+document.querySelectorAll('[data-set]').forEach(b=>{
+  b.onclick = ()=>{ setT(+b.dataset.set, /REST/.test(b.textContent)); NERV.blip(1000,.04); };
+});
+document.getElementById('c-set').onclick = ()=>{
+  const s = Math.min(999*60, (+document.getElementById('c-min').value||0)*60 + (+document.getElementById('c-sec').value||0));
+  if(s>0){ setT(s); NERV.blip(1000,.04); }
+};
+go.onclick = ()=>{
+  if(left<=0) setT(total, isRest);
+  run = !run; last = Date.now();
+  go.textContent = run ? 'PAUSE' : 'RESUME';
+  phase.textContent = run ? (isRest ? 'REST IN PROGRESS' : 'OPERATION IN PROGRESS') : 'HOLDING';
+  pbar.classList.toggle('running', run);
+  phase.className = 'phase' + (isRest ? ' hot' : '');
+  NERV.blip(run?1300:800,.06);
+};
+document.getElementById('hold').onclick = ()=>{ run=false; go.textContent='RESUME'; phase.textContent='HOLDING'; };
+document.getElementById('abort').onclick = ()=>{ setT(total, isRest); phase.textContent='OPERATION ABORTED'; NERV.blip(500,.08); };
+function markCycle(){
+  done++;
+  const cyc = document.getElementById('cyc');
+  cyc.innerHTML='';
+  for(let i=0;i<done;i++){ const c=document.createElement('div'); c.className='c done'; cyc.appendChild(c); }
+}
+setInterval(()=>{
+  if(!run) return;
+  const now = Date.now();
+  left = Math.max(0, left - (now-last)/1000);
+  last = now;
+  paint();
+  if(left<=0){
+    run=false;
+    if(!isRest){ markCycle(); NERV.atField(window.innerWidth/2, window.innerHeight/2); NERV.alarm('FOCUS OPERATION COMPLETE — STAND DOWN FOR REST'); phase.textContent='OPERATION COMPLETE'; setTimeout(()=>setT(done%4===0?900:300, true), 500); }
+    else { NERV.chime(); NERV.alarm('REST WINDOW CLOSED — RESUME OPERATIONS'); phase.textContent='REST COMPLETE'; setTimeout(()=>setT(1500,false), 500); }
+  }
+}, 200);
+paint();
+</script>
+</body>
+</html>
