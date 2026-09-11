@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script>if(localStorage.getItem('nerv-theme')==='green')document.documentElement.classList.add('green');</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NERV OS — CHRONO</title>
+<meta name="theme-color" content="#080502">
+<link rel="manifest" href="../manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Shippori+Mincho+B1:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="nerv.css">
+<style>
+.bigclock{font-family:var(--mincho); font-weight:800; font-size:clamp(48px,9vw,96px); letter-spacing:.04em; color:var(--ink-hi); line-height:1; text-align:center}
+.wc{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px}
+.wc .z{border:1px solid var(--hair-dim); padding:8px 10px; transition:border-color .15s}
+.wc .z:hover{border-color:var(--glow1)}
+.wc .z .n{font-size:9px; letter-spacing:.3em; color:var(--ink-dim)}
+.wc .z .t{font-size:20px; font-weight:600; color:var(--ink-hi)}
+.alarm-row{display:flex; align-items:center; gap:10px; border-bottom:1px dashed var(--hair-dim); padding:8px 0}
+.alarm-row .at{font-size:22px; font-weight:600; color:var(--ink-hi); min-width:86px}
+.alarm-row .al{flex:1; font-size:11px; color:var(--ink-dim); letter-spacing:.1em}
+.alarm-row.armed .at{color:var(--amber)}
+.sw{font-family:var(--mincho); font-weight:800; font-size:clamp(36px,6vw,60px); color:var(--ink-hi); text-align:center; letter-spacing:.04em}
+.row{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
+input[type=time]{background:#000; border:1px solid var(--hair); color:var(--ink-hi); padding:8px; font-size:16px}
+input[type=time]::-webkit-calendar-picker-indicator{filter:invert(.7) sepia(1) hue-rotate(80deg)}
+</style>
+</head>
+<body>
+<main>
+  <div class="phead">
+    <h1 class="glow">CHRONO</h1><span class="jp">時計</span>
+    <div class="code">MODULE 01<br>TIMEKEEPING</div>
+  </div>
+  <div class="grid2">
+    <div>
+      <div class="panel tickbox">
+        <div class="cap">LOCAL — 現在時刻</div>
+        <div class="bigclock glow" id="local">--:--:--</div>
+        <div class="ro" style="margin-top:10px"><span class="k">DATE</span><span class="v" data-date></span></div>
+        <div class="ro"><span class="k">DAY</span><span class="v" id="dow">--</span></div>
+      </div>
+      <div class="panel">
+        <div class="cap">WORLD GRID — 世界時刻</div>
+        <div class="wc" id="wc"></div>
+      </div>
+    </div>
+    <div>
+      <div class="panel tickbox">
+        <div class="cap">ALARMS — 警報</div>
+        <div class="row" style="margin-top:4px">
+          <input type="time" id="a-time" value="07:00">
+          <input class="inp" id="a-label" placeholder="LABEL (OPTIONAL)" style="flex:1; min-width:120px">
+          <button class="btn solid" id="a-add">SET</button>
+        </div>
+        <div id="alarms" style="margin-top:8px"></div>
+        <div class="small dim" style="margin-top:8px">ALARMS FIRE WHILE THIS PAGE IS OPEN. SOUND PLAYS EVEN IN MUTE MODE WHEN AN ALARM TRIGGERS.</div>
+      </div>
+      <div class="panel">
+        <div class="cap">STOPWATCH — 計測</div>
+        <div class="sw" id="sw">00:00.0</div>
+        <div class="row" style="justify-content:center">
+          <button class="btn solid" id="sw-start">START</button>
+          <button class="btn" id="sw-lap">LAP</button>
+          <button class="btn warn" id="sw-reset">RESET</button>
+        </div>
+        <div id="laps" class="small dim" style="margin-top:10px; max-height:120px; overflow:auto"></div>
+      </div>
+    </div>
+  </div>
+</main>
+<script src="nerv.js"></script>
+<script>
+NERV.shell('CHRONO');
+const zones = [
+  ['TOKYO-3','Asia/Tokyo'], ['CHICAGO','America/Chicago'], ['NEW YORK','America/New_York'],
+  ['LOS ANGELES','America/Los_Angeles'], ['LONDON','Europe/London'], ['UTC','UTC']
+];
+const wc = document.getElementById('wc');
+zones.forEach(z=>{
+  const d = document.createElement('div');
+  d.className='z'; d.innerHTML = '<div class="n">'+z[0]+'</div><div class="t" data-z="'+z[1]+'">--:--</div>';
+  wc.appendChild(d);
+});
+const DOW=['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+function tick(){
+  const d=new Date();
+  document.getElementById('local').textContent = NERV.two(d.getHours())+':'+NERV.two(d.getMinutes())+':'+NERV.two(d.getSeconds());
+  document.getElementById('dow').textContent = DOW[d.getDay()];
+  document.querySelectorAll('[data-z]').forEach(el=>{
+    el.textContent = new Intl.DateTimeFormat('en-GB',{timeZone:el.dataset.z, hour:'2-digit', minute:'2-digit', hour12:false}).format(d);
+  });
+  checkAlarms(d);
+}
+/* alarms */
+let alarms = NERV.store.get('alarms', []);
+let lastFired = '';
+function saveAlarms(){ NERV.store.set('alarms', alarms); }
+function renderAlarms(){
+  const box = document.getElementById('alarms');
+  box.innerHTML = alarms.length ? '' : '<div class="small dim">NO ALARMS SET.</div>';
+  alarms.forEach((a,i)=>{
+    const r = document.createElement('div');
+    r.className = 'alarm-row' + (a.on ? ' armed' : '');
+    r.innerHTML = '<span class="at">'+a.time+'</span><span class="al">'+(a.label||'ALARM')+'</span>';
+    const tog = document.createElement('button');
+    tog.className = 'btn'; tog.textContent = a.on ? 'ARMED' : 'OFF';
+    tog.onclick = ()=>{ a.on = !a.on; saveAlarms(); renderAlarms(); NERV.blip(900,.04); };
+    const del = document.createElement('button');
+    del.className = 'btn danger'; del.textContent = 'DEL';
+    del.onclick = ()=>{ alarms.splice(i,1); saveAlarms(); renderAlarms(); };
+    r.appendChild(tog); r.appendChild(del);
+    box.appendChild(r);
+  });
+}
+document.getElementById('a-add').onclick = ()=>{
+  const t = document.getElementById('a-time').value;
+  if(!t) return;
+  alarms.push({time:t, label:document.getElementById('a-label').value.trim(), on:true});
+  alarms.sort((a,b)=> a.time < b.time ? -1 : 1);
+  document.getElementById('a-label').value='';
+  saveAlarms(); renderAlarms(); NERV.chime(); NERV.atFieldOn(document.getElementById('a-add')); const row=document.querySelector('.alarm-row'); if(row){row.classList.add('flash');}
+};
+function checkAlarms(d){
+  const now = NERV.two(d.getHours())+':'+NERV.two(d.getMinutes());
+  const stamp = now + '@' + d.toDateString();
+  alarms.forEach(a=>{
+    if(a.on && a.time === now && lastFired !== stamp + a.time + a.label){
+      lastFired = stamp + a.time + a.label;
+      NERV.alarm('ALARM ' + a.time + (a.label ? ' — ' + a.label.toUpperCase() : ''));
+    }
+  });
+}
+renderAlarms();
+
+/* stopwatch */
+let swT = 0, swRun = false, swLast = 0, lapN = 0;
+function fmt(ms){
+  const m = Math.floor(ms/60000), s = Math.floor(ms%60000/1000), d = Math.floor(ms%1000/100);
+  return NERV.two(m)+':'+NERV.two(s)+'.'+d;
+}
+setInterval(()=>{
+  if(swRun){ swT += Date.now()-swLast; swLast = Date.now(); }
+  document.getElementById('sw').textContent = fmt(swT);
+}, 100);
+document.getElementById('sw-start').onclick = function(){
+  swRun = !swRun; swLast = Date.now();
+  this.textContent = swRun ? 'PAUSE' : 'START';
+  NERV.blip(swRun?1100:700,.05);
+};
+document.getElementById('sw-lap').onclick = ()=>{
+  if(swT===0) return;
+  lapN++;
+  const d = document.createElement('div');
+  d.textContent = 'LAP '+NERV.two(lapN)+' — '+fmt(swT);
+  document.getElementById('laps').prepend(d);
+};
+document.getElementById('sw-reset').onclick = ()=>{
+  swRun=false; swT=0; lapN=0;
+  document.getElementById('sw-start').textContent='START';
+  document.getElementById('laps').innerHTML='';
+};
+
+/* start the clock loop after everything is declared */
+setInterval(tick, 250); tick();
+</script>
+</body>
+</html>
