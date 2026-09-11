@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script>if(localStorage.getItem('nerv-theme')==='green')document.documentElement.classList.add('green');</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NERV OS — MAGI CALC</title>
+<meta name="theme-color" content="#080502">
+<link rel="manifest" href="../manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Shippori+Mincho+B1:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="nerv.css">
+<style>
+.calc{max-width:420px; margin:0 auto}
+.screen{border:1px solid var(--hair); background:#000; padding:14px; text-align:right; margin-bottom:10px}
+.screen .expr{min-height:16px; font-size:11px; color:var(--ink-dim); letter-spacing:.1em; word-break:break-all}
+.screen .val{font-family:var(--mincho); font-weight:800; font-size:clamp(32px,7vw,52px); color:var(--ink-hi); line-height:1.1; word-break:break-all}
+.keys{display:grid; grid-template-columns:repeat(4,1fr); gap:8px}
+.keys button{
+  border:1px solid var(--hair); background:var(--panel); color:var(--ink);
+  font-size:18px; padding:16px 0; letter-spacing:.05em;
+}
+.keys button:hover{background:var(--hair-dim)}
+.keys button:active{transform:scale(.93); background:var(--hair)}
+.keys button.op{color:var(--amber); border-color:rgba(255,176,0,.4)}
+.keys button.op:hover{background:var(--hair-dim)}
+.keys button.eq{background:var(--ink); color:#000; font-weight:600}
+.keys button.eq:hover{background:var(--ink-hi)}
+.keys button.cl{color:var(--red); border-color:rgba(255,59,48,.4)}
+.keys button.cl:hover{background:rgba(255,59,48,.12)}
+.vote{display:flex; gap:8px; justify-content:center; margin-top:12px}
+.vote .v{font-size:9px; letter-spacing:.25em; color:var(--ink-dim); border:1px solid var(--hair-dim); padding:3px 8px}
+.vote .v.ok{color:var(--ink); border-color:var(--hair)}
+.tape{max-width:420px; margin:18px auto 0; max-height:180px; overflow:auto}
+.tape .tr{display:flex; justify-content:space-between; font-size:11px; border-bottom:1px dashed var(--hair-dim); padding:4px 2px}
+.tape .tr .e{color:var(--ink-dim)} .tape .tr .r{color:var(--ink-hi)}
+</style>
+</head>
+<body>
+<main>
+  <div class="phead">
+    <h1 class="glow">MAGI CALC</h1><span class="jp">演算</span>
+    <div class="code">MODULE 05<br>COMPUTATION</div>
+  </div>
+  <div class="calc">
+    <div class="screen tickbox">
+      <div class="expr" id="expr">&nbsp;</div>
+      <div class="val glow" id="val">0</div>
+    </div>
+    <div class="keys" id="keys"></div>
+    <div class="vote">
+      <span class="v" id="v1">MELCHIOR</span><span class="v" id="v2">BALTHASAR</span><span class="v" id="v3">CASPER</span>
+    </div>
+  </div>
+  <div class="panel tape" id="tapewrap" style="display:none">
+    <div class="cap">OPERATION TAPE — 記録</div>
+    <div id="tape"></div>
+  </div>
+</main>
+<script src="nerv.js"></script>
+<script>
+NERV.shell('MAGI CALC');
+let cur='0', prev=null, op=null, fresh=true;
+const valEl = document.getElementById('val'), exprEl = document.getElementById('expr');
+const layout = [
+  ['C','cl'],['⌫','cl'],['%','op'],['/','op'],
+  ['7',''],['8',''],['9',''],['*','op'],
+  ['4',''],['5',''],['6',''],['-','op'],
+  ['1',''],['2',''],['3',''],['+','op'],
+  ['±','op'],['0',''],['.',''],['=','eq']
+];
+const keys = document.getElementById('keys');
+layout.forEach(k=>{
+  const b = document.createElement('button');
+  b.textContent = k[0]; b.className = k[1];
+  b.onclick = ()=>press(k[0]);
+  keys.appendChild(b);
+});
+function fmt(n){
+  if(typeof n !== 'number' || !isFinite(n)) return 'ERROR';
+  let s = Math.abs(n) >= 1e12 || (Math.abs(n) < 1e-9 && n!==0) ? n.toExponential(6) : String(Math.round(n*1e10)/1e10);
+  return s;
+}
+function paint(){
+  valEl.textContent = cur;
+  exprEl.innerHTML = (prev!==null ? fmt(prev)+' '+(op||'') : '') || '&nbsp;';
+}
+function compute(a,b,o){
+  switch(o){ case '+': return a+b; case '-': return a-b; case '*': return a*b; case '/': return b===0 ? NaN : a/b; }
+}
+function consensus(){
+  ['v1','v2','v3'].forEach((id,i)=>{
+    const el = document.getElementById(id);
+    el.classList.remove('ok');
+    setTimeout(()=>el.classList.add('ok'), 150 + i*200);
+  });
+}
+function tapeAdd(e, r){
+  const w = document.getElementById('tapewrap'); w.style.display='block';
+  const d = document.createElement('div');
+  d.className='tr'; d.innerHTML='<span class="e"></span><span class="r"></span>';
+  d.querySelector('.e').textContent = e; d.querySelector('.r').textContent = r;
+  document.getElementById('tape').prepend(d);
+}
+function press(k){
+  NERV.blip(/[0-9.]/.test(k) ? 1000 : 700, .03);
+  if(/[0-9]/.test(k)){
+    if(fresh){ cur = k; fresh = false; }
+    else cur = cur==='0' ? k : cur + k;
+    if(cur.length > 16) cur = cur.slice(0,16);
+  } else if(k === '.'){
+    if(fresh){ cur='0.'; fresh=false; } else if(!cur.includes('.')) cur += '.';
+  } else if(k === 'C'){ cur='0'; prev=null; op=null; fresh=true; }
+  else if(k === '⌫'){ cur = cur.length>1 ? cur.slice(0,-1) : '0'; }
+  else if(k === '±'){ cur = fmt(-parseFloat(cur)); }
+  else if(k === '%'){ cur = fmt(parseFloat(cur)/100); }
+  else if(k === '='){
+    if(op && prev!==null){
+      const a = prev, b = parseFloat(cur);
+      const r = compute(a,b,op);
+      tapeAdd(fmt(a)+' '+op+' '+fmt(b), fmt(r));
+      valEl.classList.remove('flash'); void valEl.offsetWidth; valEl.classList.add('flash');
+      NERV.atFieldOn(valEl);
+      cur = fmt(r); prev=null; op=null; fresh=true;
+      consensus();
+    }
+  } else { // operator
+    const n = parseFloat(cur);
+    if(op && prev!==null && !fresh){
+      prev = compute(prev, n, op);
+    } else prev = n;
+    op = k; fresh = true;
+    cur = fmt(prev);
+  }
+  paint();
+}
+document.addEventListener('keydown', e=>{
+  const map = {'Enter':'=','=':'=','Backspace':'⌫','Escape':'C','x':'*','X':'*'};
+  const k = map[e.key] || e.key;
+  if(/^[0-9.+\-*/%]$/.test(k) || ['=','⌫','C'].includes(k)){
+    e.preventDefault(); press(k);
+  }
+});
+paint();
+</script>
+</body>
+</html>
